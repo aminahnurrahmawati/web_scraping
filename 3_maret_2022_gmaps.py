@@ -7,17 +7,14 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin 
 import re
 
+#important note : every single class element must be monitored periodically, because they can be changed anytime, soo keep inspecting the element enytime you want to scrap
 
-filename = "data"
-link = "https://www.google.com/maps/search/Restaurants/@-6.116591,106.6906678,12z/data=!4m2!2m1!6e5"
+link = "https://www.google.com/maps/search/Restaurants/@-6.116773,106.7607085,13z/data=!3m1!4b1"
 
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 #options.add_argument("--headless")
 browser = webdriver.Chrome(options=options)
-
-record = []
-new_list= []
 
 e = []
 le = 0
@@ -51,50 +48,62 @@ def Selenium_extractor():
         source = browser.page_source
         soup = BeautifulSoup(source, 'html.parser')
         detail = soup.findAll("div", {"class" : "UaQhfb fontBodyMedium"})
-
-        for element in detail:
-            content=element.text
-            matriks.append(content)
+        #b = soup.findAll("div", {"class" : "AeaXub"})
+        c = soup.findAll("div", {"class" : "m6QErb WNBkOb"})
+        alamt = soup.findAll("div", {"class" : "AeaXub"})
         
-            
-            #print(record)
-            #print(matriks)
+        nama_resto = soup.find("h1" , {"class" : "DUwDvf fontHeadlineLarge"})
+        #name = nama_resto.text
 
-            new_list = []
-            for item in matriks:
-                match = re.match(r'(.*?)\s+([\d,\.]+)\((\d+)\)\s+·\s*(.*?)\s*·\s*(.*?)\s*·\s*(.*?)\s*', item)
-            if match:
-                groups = match.groups()
-                if '$$$$' or '$$$' or '$$' not in  groups[3]:
-                    groups = list(groups)
-                    groups[3] = '-'
-                    new_item = ' '.join(groups)
-                    new_list.append(new_item)
-            else:
-                new_list.append(item)
-
-            if new_list != []:
-                print(new_list)
+        address_elements = browser.find_elements(By.CSS_SELECTOR,"[data-item-id='address']")
+        addresses = [element.get_attribute("innerHTML") for element in address_elements]
+        addresses = [address.get_text() for address in soup.select("[data-item-id='address']")]
+        
+        no_telp_element = browser.find_elements(By.CSS_SELECTOR,"[data-tooltip='Salin nomor telepon']")
+        no_telp = [elements.get_attribute("innerHTML") for elements in no_telp_element]
+        no_telp = [number.get_text() for number in soup.select("[data-tooltip='Salin nomor telepon']")]
+        
+        location_detail_html = browser.find_elements(By.CSS_SELECTOR,"[data-item-id='oloc']")
+        location_detail = [elements.get_attribute("innerHTML") for elements in location_detail_html]
+        location_detail = [loc.get_text() for loc in soup.select("[data-item-id='oloc']")]
+        #print(location_detail)
+        
+        website_element = browser.find_elements(By.CSS_SELECTOR,"[data-item-id='authority']")
+        website = [elements.get_attribute("innerHTML") for elements in website_element]
+        website = [web.get_text() for web in soup.select("[data-item-id='authority']")]
+        
+        review_html = soup.find("button" , {"class" : "HHrUdb fontTitleSmall rqjGif"})
+        if review_html is not None :
+            reviews=review_html.text
+        
+        star_html = soup.find("div", {"class" : "fontDisplayLarge"})
+        if star_html is not None :
+            star = star_html.text
+            star = star.replace(",", ".")
+        
+        resto_type_html = soup.find("button" , {"class" : "DkEaL u6ijk"})
+        
+        price_level_html = soup.find("span" , {"class" : "mgr77e"})
+        if price_level_html is not None :
+            price_level=price_level_html.text
+            if price_level == "·$":
+                price_level= 1
+            if price_level == "·$$":
+                price_level= 2
+            if price_level == "·$$$":
+                price_level= 3
+            if price_level == "·$$$$":
+                price_level= 4
+        if price_level_html is None:
+            price_level= "NaN"
+        
+        if nama_resto is not None and addresses is not None and no_telp is not None and resto_type_html is not None :
+            data = {"resto" : nama_resto.text, "alamat" : addresses, "location" : location_detail, 
+                    "Phone" : no_telp, "website" : website, "star": star ,
+                    "reviews" : reviews, "priceLevel" : price_level, "restoType" : resto_type_html.text}
+            print(data)
             
 browser.get(str(link))
 time.sleep(10)
 Selenium_extractor()
-
-"""
-for d in matriks:
-                    # Buang karakter whitespace di awal dan akhir
-                d = d.strip()
-                 # Pisahkan data menjadi beberapa bagian dengan karakter pemisah "·"
-                parts = d.split("·")
-                    # Ambil nilai-nilai yang sesuai untuk setiap kolom yang diinginkan
-                restaurant = parts[0].split("    ")[0].split("(")[0].split(")")[0].strip()
-                rating= (parts[0].split("         ")[1].split("(")[0].split(")")[0].replace(",", "."))
-                jumlah_review = (parts[0].split("(")[0].split(")")[0])
-                category = (parts[1].split("(")[0].split(")")[0])
-                address = parts[2].strip()
-                type_ = parts[3].strip()
-                #description = parts[4].strip()
-                details = {"nama_restaurant" : restaurant, "Ratings" : rating, "jumlah_review" : jumlah_review, \
-                    "category" : category, "alamat" : address, "tipe" : type_ }
-                record.append(details)
-"""
+       
