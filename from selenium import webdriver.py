@@ -25,7 +25,8 @@ display.start()"""
 
 def insert_new_data(data):
     # get data from database
-    client = pymongo.MongoClient('your_mongodb_database')
+    client = pymongo.MongoClient('your_mongodb_database_client')
+    db = client["your_db_name"]
     collection = db["your_collection"]
     toDb = dict(data)
      #checking the availibility of certain data
@@ -903,7 +904,7 @@ def SeleniumExtractor(tenant, search_location):
         }
 
         item["details"] = result_detail
-        #insert_new_data(item)
+        insert_new_data(item)
 
         row_ = row_+1
     
@@ -912,7 +913,7 @@ def SeleniumExtractor(tenant, search_location):
     return list_all
 
 if __name__ == "__main__":
-    result = SeleniumExtractor("Restaurants","Penjaringan, Jakarta Utara")
+    result = SeleniumExtractor("Restaurants","Padang, Sumatera Barat")
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d-%H-%M-%S")
     filename = "output-{}.json".format(now_str)
